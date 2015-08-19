@@ -184,10 +184,10 @@ func (h *Connection) readOne() bool {
 		}
 		h.cmd <- resp
 	case "api/response":
-//		if string(resp.Body[:2]) == "-E" {
-//			h.err <- errors.New(string(resp.Body)[5:])
-//			return true
-//		}
+		//		if string(resp.Body[:2]) == "-E" {
+		//			h.err <- errors.New(string(resp.Body)[5:])
+		//			return true
+		//		}
 		copyHeaders(&hdr, resp, false)
 		if string(resp.Body[:2]) == "-E" {
 			resp.Error = string(resp.Body)[5:]
@@ -229,14 +229,14 @@ func (h *Connection) readOne() bool {
 			resp.Header[capitalize(k)] = v
 		}
 		if v, _ := resp.Header["_body"]; v != nil {
-                        switch vv := v.(type) {
-                        case string:
-                            resp.Body = vv
-                        case int:
-                            resp.Body = string(vv)
-                        default:
-                            resp.Body = ""
-                        }
+			switch vv := v.(type) {
+			case string:
+				resp.Body = vv
+			case int:
+				resp.Body = string(vv)
+			default:
+				resp.Body = ""
+			}
 			delete(resp.Header, "_body")
 		} else {
 			resp.Body = ""
