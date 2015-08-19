@@ -174,22 +174,24 @@ func (h *Connection) readOne() bool {
 	switch hdr.Get("Content-Type") {
 	case "command/reply":
 		reply := hdr.Get("Reply-Text")
-		if reply[:2] == "-E" {
-			h.err <- errors.New(reply[5:])
-			return true
-		}
 		if reply[0] == '%' {
 			copyHeaders(&hdr, resp, true)
 		} else {
 			copyHeaders(&hdr, resp, false)
 		}
+		if reply[:2] == "-E" {
+			resp.Error = reply[5:]
+		}
 		h.cmd <- resp
 	case "api/response":
-		if string(resp.Body[:2]) == "-E" {
-			h.err <- errors.New(string(resp.Body)[5:])
-			return true
-		}
+//		if string(resp.Body[:2]) == "-E" {
+//			h.err <- errors.New(string(resp.Body)[5:])
+//			return true
+//		}
 		copyHeaders(&hdr, resp, false)
+		if string(resp.Body[:2]) == "-E" {
+			resp.Error = string(resp.Body)[5:]
+		}
 		h.api <- resp
 	case "text/event-plain":
 		reader := bufio.NewReader(bytes.NewReader([]byte(resp.Body)))
@@ -456,6 +458,7 @@ type EventHeader map[string]interface{}
 type Event struct {
 	Header EventHeader // Event headers, key:val
 	Body   string      // Raw body, available in some events
+	Error  string      // If comes response error from FS
 }
 
 func (r *Event) String() string {
@@ -468,7 +471,11 @@ func (r *Event) String() string {
 
 // Get returns an Event value, or "" if the key doesn't exist.
 func (r *Event) Get(key string) string {
-	return r.Header[key].(string)
+	v, ok := r.Header[key].(string)
+	if !ok {
+		return ""
+	}
+	return v
 }
 
 // GetInt returns an Event value converted to int, or an error if conversion
