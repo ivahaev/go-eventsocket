@@ -351,6 +351,31 @@ func (h *Connection) Send(command string) (*Event, error) {
 	}
 }
 
+// SendWithJobUUID sends a single command to the server with Job-UUID provided
+// and returns a response Event. Useful for bgapi commands
+//
+// See http://wiki.freeswitch.org/wiki/Event_Socket#Command_Documentation for
+// details.
+func (h *Connection) SendWithJobUUID(command, jobUUID string) (*Event, error) {
+	// Sanity check to avoid breaking the parser
+	if strings.IndexAny(command, "\r\n") > 0 {
+		return nil, errInvalidCommand
+	}
+	fmt.Fprintf(h.conn, "%s\r\njob-uuid: %s\r\n\r\n", command, jobUUID)
+	var (
+		ev  *Event
+		err error
+	)
+	select {
+	case err = <-h.err:
+		return nil, err
+	case ev = <-h.cmd:
+		return ev, nil
+	case ev = <-h.api:
+		return ev, nil
+	}
+}
+
 // MSG is the container used by SendMsg to store messages sent to FreeSWITCH.
 // It's supposed to be populated with directives supported by the sendmsg
 // command only, like "call-command: execute".
